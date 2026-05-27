@@ -1,31 +1,17 @@
-// src/utils/swalHelpers.ts
-import Swal, {type SweetAlertIcon } from 'sweetalert2';
+// File: src/helpers/swalHelpers.ts
+import Swal, { type SweetAlertIcon } from 'sweetalert2';
 
-// --- Toast configuration (mixin) ---
-const Toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    showCloseButton: true,
-    timer: 3000,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-        toast.addEventListener('mouseenter', Swal.stopTimer);
-        toast.addEventListener('mouseleave', Swal.resumeTimer);
-    },
+const getThemeConfig = (isDark: boolean) => ({
+    background: isDark ? '#1f2937' : '#ffffff',
+    color: isDark ? '#f9fafb' : '#111827',
+    confirmButtonColor: '#3b82f6',
+    cancelButtonColor: isDark ? '#374151' : '#d1d5db',
 });
 
-/**
- * Show a confirmation dialog.
- * @param title - The title of the dialog.
- * @param text - The main message.
- * @param icon - Icon type (default: 'warning').
- * @param confirmButtonText - Text for the confirm button (default: 'Yes').
- * @returns Promise<boolean> - true if confirmed, false if cancelled/dismissed.
- */
 export const showConfirmation = async (
     title: string,
     text: string,
+    isDark: boolean = false,
     icon: SweetAlertIcon = 'warning',
     confirmButtonText: string = 'Yes'
 ): Promise<boolean> => {
@@ -33,6 +19,7 @@ export const showConfirmation = async (
         title,
         text,
         icon,
+        ...getThemeConfig(isDark),
         showCancelButton: true,
         confirmButtonText,
         showCloseButton: true,
@@ -40,16 +27,24 @@ export const showConfirmation = async (
     return result.isConfirmed;
 };
 
-/**
- * Show a toast notification.
- * @param message - The message to display.
- * @param icon - Icon type (default: 'success').
- */
 export const showToast = (
     message: string,
     icon: SweetAlertIcon = 'success',
-
+    isDark: boolean = false
 ): void => {
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        ...getThemeConfig(isDark),
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        },
+    });
+
     Toast.fire({
         icon,
         title: message,
