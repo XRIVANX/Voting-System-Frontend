@@ -8,12 +8,27 @@ export interface TabConfig {
     icon: LucideIcon;
 }
 
+export interface OptionPayload {
+    value: string;
+    image?: File | null;
+}
+
+export interface Option {
+    id: number;
+    poll_uuid: string;
+    value: string;
+    image_path?: string | null;
+    image_url?: string | null;
+    votes_count?: number;
+}
+
 export interface Poll {
     id: string;
     title: string;
     status: 'open' | 'closed';
     start_time: string | null;
     end_time: string | null;
+    options?: Option[];
 }
 
 export const formatForDateTimeInput = (dateString: string | null): string => {

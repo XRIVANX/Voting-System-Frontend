@@ -3,12 +3,17 @@
 import { useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { showConfirmation } from '../../helpers/swalHelpers';
-import { type Poll, type TabType, formatForDateTimeInput } from '../../features/poll/poll';
+import { type Poll, type TabType, type OptionPayload, formatForDateTimeInput } from '../../features/poll/poll';
 import { usePolls, usePollMutations } from '../../features/poll/hooks/usePollQueries';
 
 import PollTabs from '../../features/poll/PollTabs';
 import PollTable from '../../features/poll/PollTable';
 import Pagination from '../../components/navigation/Pagination';
+
+const DEFAULT_OPTIONS: OptionPayload[] = [
+    { value: '', image: null },
+    { value: '', image: null },
+];
 
 export default function PollList() {
     const titleInputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +35,9 @@ export default function PollList() {
     const [pollStatus, setPollStatus] = useState('open');
     const [errorMessage, setErrorMessage] = useState('');
 
+    // --- Options State ---
+    const [options, setOptions] = useState<OptionPayload[]>(DEFAULT_OPTIONS);
+
     // --- Filter States ---
     const [searchText, setSearchText] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -45,22 +53,10 @@ export default function PollList() {
         bulkDeleteMutation
     } = usePollMutations();
 
-    // --- Optimized Filter Handlers (Fixes the ESLint Error) ---
-    // Instead of using useEffect to reset the page, we do it directly when the filter changes.
-    const handleSearchChange = (val: string) => {
-        setSearchText(val);
-        setCurrentPage(1);
-    };
-
-    const handleStatusFilterChange = (val: string) => {
-        setStatusFilter(val);
-        setCurrentPage(1);
-    };
-
-    const handleSortFilterChange = (val: string) => {
-        setSortFilter(val);
-        setCurrentPage(1);
-    };
+    // --- Filter Handlers ---
+    const handleSearchChange = (val: string) => { setSearchText(val); setCurrentPage(1); };
+    const handleStatusFilterChange = (val: string) => { setStatusFilter(val); setCurrentPage(1); };
+    const handleSortFilterChange = (val: string) => { setSortFilter(val); setCurrentPage(1); };
 
     // --- Form Helpers ---
     const handleClearForm = () => {
@@ -70,6 +66,7 @@ export default function PollList() {
         setEndDate('');
         setPollStatus('open');
         setErrorMessage('');
+        setOptions(DEFAULT_OPTIONS);
     };
 
     const handleEditClick = (poll: Poll) => {
@@ -81,6 +78,13 @@ export default function PollList() {
         setActiveTab('form');
         setIsPanelOpen(true);
 
+        // Pre-fill options from the poll — images can't be pre-filled (files only go one way)
+        if (poll.options && poll.options.length > 0) {
+            setOptions(poll.options.map(opt => ({ value: opt.value, image: null })));
+        } else {
+            setOptions(DEFAULT_OPTIONS);
+        }
+
         setTimeout(() => {
             titleInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             titleInputRef.current?.focus();
@@ -88,7 +92,9 @@ export default function PollList() {
     };
 
     const toggleSelect = (id: string) => {
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
     };
 
     const handleMutationError = (error: unknown, fallback: string) => {
@@ -99,16 +105,28 @@ export default function PollList() {
         }
     };
 
+    // --- Validate options before submitting ---
+    const validateOptions = (): boolean => {
+        const filled = options.filter(o => o.value.trim() !== '');
+        if (filled.length < 2) {
+            setErrorMessage('Please provide at least 2 option labels.');
+            return false;
+        }
+        return true;
+    };
+
     // --- Mutation Handlers ---
     const handleCreatePoll = () => {
         setErrorMessage('');
         if (!pollTitle.trim()) return setErrorMessage('Please provide a poll title.');
+        if (!validateOptions()) return;
 
         createMutation.mutate({
             title: pollTitle,
             start_time: startDate || null,
             end_time: endDate || null,
             status: pollStatus,
+            options: options.filter(o => o.value.trim() !== ''),
         }, {
             onSuccess: handleClearForm,
             onError: (err) => handleMutationError(err, 'Failed to create poll.')
@@ -118,6 +136,8 @@ export default function PollList() {
     const handleUpdatePoll = () => {
         if (!editingPollId) return;
         setErrorMessage('');
+        if (!pollTitle.trim()) return setErrorMessage('Please provide a poll title.');
+        if (!validateOptions()) return;
 
         updateMutation.mutate({
             id: editingPollId,
@@ -126,6 +146,7 @@ export default function PollList() {
                 start_time: startDate || null,
                 end_time: endDate || null,
                 status: pollStatus,
+                options: options.filter(o => o.value.trim() !== ''),
             }
         }, {
             onSuccess: handleClearForm,
@@ -144,7 +165,6 @@ export default function PollList() {
         deleteMutation.mutate(id, {
             onSuccess: () => {
                 if (editingPollId === id) handleClearForm();
-                // Check if we need to jump back a page
                 if (paginatedPolls.length === 1 && currentPage > 1) {
                     setCurrentPage(prev => prev - 1);
                 }
@@ -179,7 +199,8 @@ export default function PollList() {
     const filteredPolls = useMemo(() => {
         return polls
             .filter((poll) => {
-                const matchesSearch = poll.title.toLowerCase().includes(searchText.toLowerCase()) ||
+                const matchesSearch =
+                    poll.title.toLowerCase().includes(searchText.toLowerCase()) ||
                     poll.id.toLowerCase().includes(searchText.toLowerCase());
                 const matchesStatus = statusFilter === 'all' || poll.status === statusFilter;
                 return matchesSearch && matchesStatus;
@@ -222,7 +243,9 @@ export default function PollList() {
                 titleInputRef={titleInputRef}
                 isSubmitting={createMutation.isPending || updateMutation.isPending}
 
-                // Pass the new handlers instead of direct setters
+                options={options}
+                setOptions={setOptions}
+
                 searchText={searchText}
                 setSearchText={handleSearchChange}
                 statusFilter={statusFilter}

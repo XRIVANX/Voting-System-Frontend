@@ -12,7 +12,6 @@ export const usePolls = () => {
 export const usePollMutations = () => {
     const queryClient = useQueryClient();
 
-    // Helper to refresh the list and show a message
     const onSuccess = (message: string) => {
         queryClient.invalidateQueries({ queryKey: ['polls'] });
         showToast(message);
@@ -37,7 +36,8 @@ export const usePollMutations = () => {
     const bulkStatusMutation = useMutation({
         mutationFn: ({ ids, status }: { ids: string[]; status: 'open' | 'closed' }) =>
             pollApi.bulkStatus(ids, status),
-        onSuccess: (_, variables) => onSuccess(`${variables.ids.length} polls marked as ${variables.status}!`),
+        onSuccess: (_, variables) =>
+            onSuccess(`${variables.ids.length} polls marked as ${variables.status}!`),
     });
 
     const bulkDeleteMutation = useMutation({
@@ -50,6 +50,6 @@ export const usePollMutations = () => {
         updateMutation,
         deleteMutation,
         bulkStatusMutation,
-        bulkDeleteMutation
+        bulkDeleteMutation,
     };
 };
