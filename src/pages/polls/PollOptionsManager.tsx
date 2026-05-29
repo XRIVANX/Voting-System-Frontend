@@ -29,11 +29,28 @@ export default function PollOptionsManager() {
 
     const { poll, isLoading, addOption, deleteOption, updateOption } = usePollOptions(pollId);
 
+    // Derived state to check if poll is closed
+    const isPollClosed = poll?.status === 'closed';
+
+    const triggerOpenPollAlert = async () => {
+        await showConfirmation(
+            'Action Denied',
+            'You cannot edit options on an open poll.',
+            false, // Don't show cancel button, just an OK button
+            'error',
+            'Got it'
+        );
+    };
+
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!isPollClosed) {
+            triggerOpenPollAlert();
+            return;
+        }
+
         const file = e.target.files?.[0];
         if (file) {
             setImageFile(file);
-            // Using window. explicitly avoids UMD global warnings
             setPreviewUrl(window.URL.createObjectURL(file));
         }
     };
@@ -47,6 +64,11 @@ export default function PollOptionsManager() {
     };
 
     const handleSaveOption = async () => {
+        if (!isPollClosed) {
+            triggerOpenPollAlert();
+            return;
+        }
+
         if (!value.trim() || !pollId) return;
 
         const formData = new FormData();
@@ -71,6 +93,11 @@ export default function PollOptionsManager() {
     };
 
     const handleDelete = async (id: number) => {
+        if (!isPollClosed) {
+            triggerOpenPollAlert();
+            return;
+        }
+
         const isConfirmed = await showConfirmation(
             'Delete Option?',
             'Are you sure you want to remove this option? This cannot be undone.',
@@ -91,6 +118,11 @@ export default function PollOptionsManager() {
     };
 
     const startEdit = (opt: PollOption) => {
+        if (!isPollClosed) {
+            triggerOpenPollAlert();
+            return;
+        }
+
         setEditingId(opt.id);
         setValue(opt.value);
         setPreviewUrl(opt.image_url || null);
@@ -114,8 +146,13 @@ export default function PollOptionsManager() {
                     <ArrowLeft size={20} />
                 </button>
                 <div>
-                    <h1 className="text-2xl font-black text-[var(--text-heading)]">
+                    <h1 className="text-2xl font-black text-[var(--text-heading)] flex items-center gap-3">
                         {poll?.title || 'Manage Options'}
+                        {!isPollClosed && (
+                            <span className="text-[10px] bg-rose-500/10 text-rose-500 px-2 py-1 rounded-md uppercase tracking-wider">
+                                Read Only (Poll Open)
+                            </span>
+                        )}
                     </h1>
                     <p className="text-sm text-[var(--text-main)] opacity-70">
                         {poll?.options?.length || 0} choices configured
@@ -126,7 +163,7 @@ export default function PollOptionsManager() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Form Section */}
                 <div className="lg:col-span-1 space-y-4">
-                    <div className={`bg-[var(--bg-surface)] border ${editingId ? 'border-amber-500/50' : 'border-[var(--border-color)]'} rounded-3xl p-6 space-y-6 sticky top-8 transition-colors`}>
+                    <div className={`bg-[var(--bg-surface)] border ${editingId ? 'border-amber-500/50' : 'border-[var(--border-color)]'} rounded-3xl p-6 space-y-6 sticky top-8 transition-colors ${!isPollClosed ? 'opacity-70 grayscale pointer-events-none' : ''}`}>
                         <div className="flex items-center justify-between">
                             <h2 className="font-bold text-lg">
                                 {editingId ? 'Edit Option' : 'Create New Option'}
@@ -149,16 +186,17 @@ export default function PollOptionsManager() {
                                     value={value}
                                     onChange={(e) => setValue(e.target.value)}
                                     placeholder="e.g., React"
-                                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 transition-colors"
+                                    disabled={!isPollClosed}
+                                    className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
                             </div>
 
                             <div>
                                 <label className="block text-xs font-black uppercase opacity-60 mb-2">Image</label>
-                                <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" />
+                                <input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" disabled={!isPollClosed} />
 
                                 {!previewUrl ? (
-                                    <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-[var(--border-color)] rounded-xl p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:border-brand-500 hover:bg-brand-500/5 transition-all">
+                                    <div onClick={() => isPollClosed && fileInputRef.current?.click()} className={`border-2 border-dashed border-[var(--border-color)] rounded-xl p-8 flex flex-col items-center justify-center text-center transition-all ${isPollClosed ? 'cursor-pointer hover:border-brand-500 hover:bg-brand-500/5' : 'cursor-not-allowed opacity-50'}`}>
                                         <ImageIcon size={32} className="opacity-40 mb-2" />
                                         <span className="text-sm font-medium">Click to upload</span>
                                     </div>
@@ -167,7 +205,8 @@ export default function PollOptionsManager() {
                                         <img src={previewUrl} alt="Preview" className="w-full h-40 object-cover" />
                                         <button
                                             onClick={() => { setImageFile(null); setPreviewUrl(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                                            className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-lg shadow-lg hover:bg-rose-600 transition-colors"
+                                            disabled={!isPollClosed}
+                                            className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-lg shadow-lg hover:bg-rose-600 transition-colors disabled:opacity-50"
                                         >
                                             <X size={16} />
                                         </button>
@@ -177,8 +216,8 @@ export default function PollOptionsManager() {
 
                             <button
                                 onClick={handleSaveOption}
-                                disabled={addOption.isPending || updateOption.isPending || !value.trim()}
-                                className={`w-full ${editingId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-brand-600 hover:bg-brand-700'} text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 disabled:opacity-50 transition-colors`}
+                                disabled={addOption.isPending || updateOption.isPending || !value.trim() || !isPollClosed}
+                                className={`w-full ${editingId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-brand-600 hover:bg-brand-700'} text-white font-bold rounded-xl py-4 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors`}
                             >
                                 {(addOption.isPending || updateOption.isPending) ? (
                                     <Loader2 className="animate-spin" size={18} />
@@ -211,7 +250,7 @@ export default function PollOptionsManager() {
                                         : (rawImage ? `http://localhost:8000/storage/${rawImage}` : null);
 
                                     return (
-                                        <div key={option.id} className={`border ${editingId === option.id ? 'border-amber-500 bg-amber-500/5' : 'border-[var(--border-color)] bg-[var(--bg-main)]'} rounded-xl p-4 flex items-center gap-4 group hover:border-brand-500 transition-all`}>
+                                        <div key={option.id} className={`border ${editingId === option.id ? 'border-amber-500 bg-amber-500/5' : 'border-[var(--border-color)] bg-[var(--bg-main)]'} rounded-xl p-4 flex items-center gap-4 group transition-all ${isPollClosed ? 'hover:border-brand-500' : 'opacity-80'}`}>
                                             <div className="w-16 h-16 bg-[var(--bg-surface)] rounded-lg flex items-center justify-center border border-[var(--border-color)] overflow-hidden shrink-0">
                                                 {finalImageSrc ? (
                                                     <img src={finalImageSrc} alt={option.value} className="w-full h-full object-cover" />
@@ -224,7 +263,7 @@ export default function PollOptionsManager() {
                                                 <p className="text-[10px] font-black uppercase opacity-40 mt-1">{option.votes_count || 0} Votes</p>
                                             </div>
 
-                                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <div className={`flex items-center gap-1 transition-opacity ${isPollClosed ? 'opacity-0 group-hover:opacity-100' : 'hidden'}`}>
                                                 <button
                                                     onClick={() => startEdit(option)}
                                                     className="p-2 text-amber-500 hover:bg-amber-500/10 rounded-lg"
