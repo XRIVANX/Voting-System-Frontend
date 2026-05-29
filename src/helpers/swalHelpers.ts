@@ -50,3 +50,40 @@ export const showToast = (
         title: message,
     });
 };
+
+// Clickable Toast specifically designed to replace the old blocking modal
+export const showClickableToast = (
+    title: string,
+    pollTitle: string,
+    onClickAction: () => void,
+    isDark: boolean = false,
+    icon: SweetAlertIcon = 'info'
+): void => {
+    // Construct the stylized HTML right here in the helper
+    const htmlContent = `Loaded "${pollTitle}". <br/><span style="color: #a855f7; font-weight: bold; text-decoration: underline; cursor: pointer;">Click here to jump to the form.</span>`;
+
+    Swal.fire({
+        toast: true,
+        position: 'bottom-end',
+        icon,
+        title,
+        html: htmlContent,
+        ...getThemeConfig(isDark),
+        showConfirmButton: false,
+        timer: 5000,
+        timerProgressBar: true,
+        showCloseButton: true,
+        customClass: {
+            popup: 'cursor-pointer hover:shadow-lg transition-shadow'
+        },
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+
+            toast.addEventListener('click', () => {
+                onClickAction();
+                Swal.close();
+            });
+        }
+    });
+};

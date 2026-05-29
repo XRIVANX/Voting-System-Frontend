@@ -1,7 +1,7 @@
 // File: src/features/poll/PollTable.tsx
 
 import { Edit2, ExternalLink, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom'; // Added for navigation
+import { useNavigate } from 'react-router-dom';
 import { type Poll } from './poll';
 
 interface PollTableProps {
@@ -68,10 +68,10 @@ export default function PollTable({
                                     />
                                 </td>
 
-                                {/* Clicking the Title now navigates to the Option Manager */}
+                                {/* Clicking the Title now enters Edit Mode */}
                                 <td
                                     className="px-6 py-6 font-bold text-[var(--text-heading)] group-hover:text-brand-600 cursor-pointer transition-colors"
-                                    onClick={() => navigate(`/polls/${poll.id}/manage`)}
+                                    onClick={() => handleEditClick(poll)}
                                 >
                                     {poll.title}
                                     <div className="text-[10px] opacity-40 font-medium uppercase tracking-tighter mt-1">

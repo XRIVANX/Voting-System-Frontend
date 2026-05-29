@@ -1,9 +1,10 @@
 // File: src/features/poll/PollTabs.tsx
 
 import { type RefObject } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     Plus, ChevronDown, ChevronUp, Filter, Lock, Unlock,
-    Trash, CheckSquare, AlertCircle, Edit2, Loader2
+    Trash, CheckSquare, AlertCircle, Edit2, Loader2, ExternalLink, Info
 } from 'lucide-react';
 import { Text } from '../../components/input/Text';
 import { Select } from '../../components/input/Select';
@@ -32,10 +33,7 @@ interface PollTabsProps {
     handleCreatePoll: () => void;
     handleUpdatePoll: () => void;
 
-    // Fix: Properly typed Ref
     titleInputRef: RefObject<HTMLInputElement | null>;
-
-    // New: Mutation loading state
     isSubmitting: boolean;
 
     searchText: string;
@@ -59,6 +57,8 @@ export default function PollTabs({
                                      searchText, setSearchText, statusFilter, setStatusFilter, sortFilter, setSortFilter,
                                      selectedIds, handleBulkStatusChange, handleBulkDelete
                                  }: PollTabsProps) {
+
+    const navigate = useNavigate();
 
     const tabs: TabConfig[] = [
         { id: 'form', label: editingPollId ? 'Edit' : 'Create', icon: editingPollId ? Edit2 : Plus },
@@ -105,6 +105,15 @@ export default function PollTabs({
                     {/* FORM TAB */}
                     {activeTab === 'form' && (
                         <div className="flex flex-col gap-6 animate-in slide-in-from-left-4 duration-300">
+
+                            {/* Edit Mode Visual Indicator */}
+                            {editingPollId && (
+                                <div className="flex items-center gap-3 p-4 bg-brand-500/10 border border-brand-500/20 text-brand-600 rounded-2xl text-sm font-bold animate-in fade-in zoom-in duration-200">
+                                    <Info size={18} />
+                                    <span>Edit Mode Active: You are modifying an existing poll. Changes will overwrite current data.</span>
+                                </div>
+                            )}
+
                             {errorMessage && (
                                 <div className="flex items-center gap-3 p-4 bg-rose-500/10 border border-rose-500/20 text-rose-600 rounded-2xl text-sm font-bold animate-in fade-in zoom-in duration-200">
                                     <AlertCircle size={18} />
@@ -161,20 +170,31 @@ export default function PollTabs({
                                         selectClassName="w-full pl-5 pr-12 py-4 rounded-2xl bg-[var(--bg-main)] border-[var(--border-color)] focus:ring-brand-500/20"
                                     />
                                 </div>
-                                <div className="flex items-end gap-2">
+
+                                {/* Moved the actions section to a full-width row at the bottom */}
+                                <div className="md:col-span-4 flex flex-col md:flex-row items-center gap-4 mt-2 pt-6 border-t border-[var(--border-color)]/50">
                                     {editingPollId && (
-                                        <button
-                                            onClick={handleClearForm}
-                                            disabled={isSubmitting}
-                                            className="w-1/3 bg-slate-500/10 text-slate-600 font-black py-4 rounded-2xl hover:bg-slate-500/20 active:scale-95 transition-all disabled:opacity-50"
-                                        >
-                                            CLEAR
-                                        </button>
+                                        <>
+                                            <button
+                                                onClick={() => navigate(`/polls/${editingPollId}/manage`)}
+                                                disabled={isSubmitting}
+                                                className="w-full md:flex-1 flex items-center justify-center gap-2 bg-brand-500/10 text-brand-600 font-black py-4 rounded-2xl hover:bg-brand-500/20 active:scale-95 transition-all disabled:opacity-50"
+                                            >
+                                                <ExternalLink size={18} /> MANAGE OPTIONS
+                                            </button>
+                                            <button
+                                                onClick={handleClearForm}
+                                                disabled={isSubmitting}
+                                                className="w-full md:flex-1 bg-slate-500/10 text-slate-600 font-black py-4 rounded-2xl hover:bg-slate-500/20 active:scale-95 transition-all disabled:opacity-50"
+                                            >
+                                                CANCEL
+                                            </button>
+                                        </>
                                     )}
                                     <button
                                         onClick={editingPollId ? handleUpdatePoll : handleCreatePoll}
                                         disabled={isSubmitting}
-                                        className={`${editingPollId ? 'w-2/3' : 'w-full'} flex items-center justify-center gap-2 bg-brand-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed`}
+                                        className={`w-full ${editingPollId ? 'md:flex-1' : ''} flex items-center justify-center gap-2 bg-brand-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-brand-500/20 active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed`}
                                     >
                                         {isSubmitting ? (
                                             <>
@@ -182,7 +202,7 @@ export default function PollTabs({
                                                 <span>PROCESSING...</span>
                                             </>
                                         ) : (
-                                            editingPollId ? 'EDIT' : 'INITIALIZE'
+                                            editingPollId ? 'SAVE CHANGES' : 'INITIALIZE'
                                         )}
                                     </button>
                                 </div>
@@ -240,7 +260,7 @@ export default function PollTabs({
                                 </h3>
                                 <p className="text-sm text-[var(--text-main)] opacity-70">Perform bulk modifications on selected records.</p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-wrap gap-2">
                                 <button
                                     onClick={() => handleBulkStatusChange('open')}
                                     disabled={!selectedIds.length || isSubmitting}
