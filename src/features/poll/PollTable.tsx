@@ -1,4 +1,5 @@
 import { Edit2, ExternalLink, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { type Poll } from './poll';
 
 interface PollTableProps {
@@ -20,6 +21,8 @@ export default function PollTable({
     handleEditClick,
     handleDelete,
 }: PollTableProps) {
+    const navigate = useNavigate();
+
     return (
         <section className="space-y-4">
             <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-3xl overflow-hidden shadow-sm">
@@ -89,8 +92,11 @@ export default function PollTable({
                                             />
                                         </td>
 
-                                        {/* Poll title + date range */}
-                                        <td className="px-6 py-6 font-bold text-[var(--text-heading)] group-hover:text-brand-600 transition-colors">
+                                        {/* Poll title + date range (Clicking title navigates to Option Manager) */}
+                                        <td
+                                            className="px-6 py-6 font-bold text-[var(--text-heading)] group-hover:text-brand-600 cursor-pointer transition-colors"
+                                            onClick={() => navigate(`/polls/${poll.id}/manage`)}
+                                        >
                                             {poll.title}
                                             <div className="text-[10px] opacity-40 font-medium uppercase tracking-tighter mt-1">
                                                 {poll.start_time
@@ -161,8 +167,9 @@ export default function PollTable({
                                                     <Edit2 size={18} />
                                                 </button>
                                                 <button
+                                                    onClick={() => navigate(`/polls/${poll.id}/manage`)}
                                                     className="p-2.5 hover:bg-brand-600 hover:text-white rounded-xl text-brand-600 transition-all active:scale-90"
-                                                    title="View"
+                                                    title="Manage Options"
                                                 >
                                                     <ExternalLink size={18} />
                                                 </button>

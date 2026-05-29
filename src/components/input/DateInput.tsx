@@ -1,4 +1,4 @@
-// components/common/input/DateInput.tsx
+// File: src/components/input/DateInput.tsx
 import React from 'react';
 import { Text } from './Text';
 
@@ -11,10 +11,11 @@ interface DateProps {
     disabled?: boolean;
     required?: boolean;
     error?: string;
-    className?: string;      // container margin
-    inputClassName?: string;  // input padding
-    min?: string;            // min date (YYYY-MM-DD)
-    max?: string;            // max date
+    className?: string;
+    inputClassName?: string;
+    min?: string;
+    max?: string;
+    type?: 'date' | 'datetime-local';
 }
 
 export const DateInput: React.FC<DateProps> = ({
@@ -27,13 +28,14 @@ export const DateInput: React.FC<DateProps> = ({
                                                    required,
                                                    error,
                                                    className,
-                                                   inputClassName = 'dark:[&::-webkit-calendar-picker-indicator]:invert', // default dark mode fix
+                                                   inputClassName = 'dark:[&::-webkit-calendar-picker-indicator]:invert',
                                                    min,
                                                    max,
+                                                   type = 'date',
                                                }) => {
     return (
         <Text
-            type="date"
+            type={type}
             name={name}
             value={value}
             onChange={onChange}

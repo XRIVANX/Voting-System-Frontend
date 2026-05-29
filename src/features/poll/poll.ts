@@ -1,3 +1,5 @@
+// File: src/features/poll/poll.ts
+
 import { type LucideIcon } from 'lucide-react';
 
 export type TabType = 'form' | 'filter' | 'action';
@@ -8,17 +10,12 @@ export interface TabConfig {
     icon: LucideIcon;
 }
 
-export interface OptionPayload {
-    value: string;
-    image?: File | null;
-}
-
+// Added this export to fix "Module has no exported member 'Option'"
 export interface Option {
     id: number;
     poll_uuid: string;
     value: string;
-    image_path?: string | null;
-    image_url?: string | null;
+    image_url: string | null;
     votes_count?: number;
 }
 

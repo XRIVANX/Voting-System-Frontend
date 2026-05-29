@@ -181,6 +181,7 @@ export default function PollTabs({
                                         name="endDate"
                                         label="End Time"
                                         value={endDate}
+                                        min={startDate}
                                         onChange={(e) => setEndDate(e.target.value)}
                                         inputClassName="w-full px-5 py-4 rounded-2xl bg-[var(--bg-main)] border-[var(--border-color)] focus:ring-brand-500/20"
                                     />
