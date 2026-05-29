@@ -1,10 +1,21 @@
-// File: src/pages/polls/PollOptionsManager.tsx
+// File: src/pages/pollOptionsManager/PollOptionsManager.tsx
 
 import { useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Image as ImageIcon, Trash2, Loader2, X, Pencil, RotateCcw } from 'lucide-react';
-import { usePollOptions } from '../../features/poll/hooks/usePollOptions';
-import { showConfirmation, showToast } from '../../helpers/swalHelpers';
+import {
+    ArrowLeft,
+    Plus,
+    Image as ImageIcon,
+    Trash2,
+    Loader2,
+    X,
+    Pencil,
+    RotateCcw,
+    Share2
+} from 'lucide-react';
+import { usePollOptions } from '../../features/poll/hooks/usePollOptions.ts';
+import { showConfirmation, showToast } from '../../helpers/swalHelpers.ts';
+import SharePollModal from '../../features/poll/modals/SharePollModal.tsx';
 
 // 1. Unified Interface for consistency
 interface PollOption {
@@ -26,6 +37,9 @@ export default function PollOptionsManager() {
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
+
+    // Modal State
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
     const { poll, isLoading, addOption, deleteOption, updateOption } = usePollOptions(pollId);
 
@@ -138,26 +152,37 @@ export default function PollOptionsManager() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-page">
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={() => navigate('/polls')}
-                    className="p-3 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl hover:bg-brand-500/10 hover:text-brand-500 transition-all"
-                >
-                    <ArrowLeft size={20} />
-                </button>
-                <div>
-                    <h1 className="text-2xl font-black text-[var(--text-heading)] flex items-center gap-3">
-                        {poll?.title || 'Manage Options'}
-                        {!isPollClosed && (
-                            <span className="text-[10px] bg-rose-500/10 text-rose-500 px-2 py-1 rounded-md uppercase tracking-wider">
-                                Read Only (Poll Open)
-                            </span>
-                        )}
-                    </h1>
-                    <p className="text-sm text-[var(--text-main)] opacity-70">
-                        {poll?.options?.length || 0} choices configured
-                    </p>
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => navigate('/polls')}
+                        className="p-3 bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-xl hover:bg-brand-500/10 hover:text-brand-500 transition-all"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <h1 className="text-2xl font-black text-[var(--text-heading)] flex items-center gap-3">
+                            {poll?.title || 'Manage Options'}
+                            {!isPollClosed && (
+                                <span className="text-[10px] bg-rose-500/10 text-rose-500 px-2 py-1 rounded-md uppercase tracking-wider">
+                                    Read Only (Poll Open)
+                                </span>
+                            )}
+                        </h1>
+                        <p className="text-sm text-[var(--text-main)] opacity-70">
+                            {poll?.options?.length || 0} choices configured
+                        </p>
+                    </div>
                 </div>
+
+                {/* Share Button */}
+                <button
+                    onClick={() => setIsShareModalOpen(true)}
+                    className="flex items-center gap-2 px-6 py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-lg shadow-brand-500/20 transition-all active:scale-95"
+                >
+                    <Share2 size={18} />
+                    Share Poll
+                </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -288,6 +313,14 @@ export default function PollOptionsManager() {
                     </div>
                 </div>
             </div>
+
+            {/* Share Modal */}
+            <SharePollModal
+                isOpen={isShareModalOpen}
+                onClose={() => setIsShareModalOpen(false)}
+                pollId={pollId!}
+                pollTitle={poll?.title}
+            />
         </div>
     );
 }
