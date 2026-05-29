@@ -3,7 +3,7 @@
 import { useState, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { showConfirmation } from '../../helpers/swalHelpers';
-import { type Poll, type TabType, formatForDateTimeInput } from '../../features/poll/poll';
+import { type Poll, type TabType, formatForDateTimeInput, formatForApi } from '../../features/poll/poll';
 import { usePolls, usePollMutations } from '../../features/poll/hooks/usePollQueries';
 
 import PollTabs from '../../features/poll/PollTabs';
@@ -106,8 +106,8 @@ export default function PollList() {
 
         createMutation.mutate({
             title: pollTitle,
-            start_time: startDate || null,
-            end_time: endDate || null,
+            start_time: formatForApi(startDate),
+            end_time: formatForApi(endDate),
             status: pollStatus,
         }, {
             onSuccess: handleClearForm,
@@ -123,8 +123,8 @@ export default function PollList() {
             id: editingPollId,
             payload: {
                 title: pollTitle,
-                start_time: startDate || null,
-                end_time: endDate || null,
+                start_time: formatForApi(startDate),
+                end_time: formatForApi(endDate),
                 status: pollStatus,
             }
         }, {
