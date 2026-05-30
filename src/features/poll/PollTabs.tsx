@@ -3,12 +3,12 @@
 import { type RefObject } from 'react';
 import {
     Plus, ChevronDown, ChevronUp, Filter, Lock, Unlock,
-    Trash, CheckSquare, AlertCircle, Edit2, Loader2, ImagePlus, X
+    Trash, CheckSquare, AlertCircle, Edit2, Loader2
 } from 'lucide-react';
 import { Text } from '../../components/input/Text';
 import { Select } from '../../components/input/Select';
 import { SearchInput } from '../../components/input/SearchInput';
-import { type TabType, type TabConfig, type OptionPayload } from './poll';
+import { type TabType, type TabConfig } from './poll';
 
 interface PollTabsProps {
     isPanelOpen: boolean;
@@ -32,10 +32,6 @@ interface PollTabsProps {
     handleCreatePoll: () => void;
     handleUpdatePoll: () => void;
 
-    // Options
-    options: OptionPayload[];
-    setOptions: (v: OptionPayload[]) => void;
-
     // Fix: Properly typed Ref
     titleInputRef: RefObject<HTMLInputElement | null>;
 
@@ -56,52 +52,19 @@ interface PollTabsProps {
 }
 
 export default function PollTabs({
-    isPanelOpen, setIsPanelOpen, activeTab, setActiveTab,
-    editingPollId, pollTitle, setPollTitle, startDate, setStartDate, endDate, setEndDate,
-    pollStatus, setPollStatus, errorMessage, setErrorMessage, handleClearForm,
-    handleCreatePoll, handleUpdatePoll, titleInputRef, isSubmitting,
-    options, setOptions,
-    searchText, setSearchText, statusFilter, setStatusFilter, sortFilter, setSortFilter,
-    selectedIds, handleBulkStatusChange, handleBulkDelete
-}: PollTabsProps) {
+                                     isPanelOpen, setIsPanelOpen, activeTab, setActiveTab,
+                                     editingPollId, pollTitle, setPollTitle, startDate, setStartDate, endDate, setEndDate,
+                                     pollStatus, setPollStatus, errorMessage, setErrorMessage, handleClearForm,
+                                     handleCreatePoll, handleUpdatePoll, titleInputRef, isSubmitting,
+                                     searchText, setSearchText, statusFilter, setStatusFilter, sortFilter, setSortFilter,
+                                     selectedIds, handleBulkStatusChange, handleBulkDelete
+                                 }: PollTabsProps) {
 
     const tabs: TabConfig[] = [
         { id: 'form', label: editingPollId ? 'Edit' : 'Create', icon: editingPollId ? Edit2 : Plus },
         { id: 'filter', label: 'Filter', icon: Filter },
         { id: 'action', label: 'Actions', icon: CheckSquare },
     ];
-
-    // Add a new blank option
-    const addOption = () => {
-        setOptions([...options, { value: '', image: null }]);
-    };
-
-    // Remove an option by index
-    const removeOption = (index: number) => {
-        if (options.length <= 2) return; // minimum 2 options
-        setOptions(options.filter((_, i) => i !== index));
-    };
-
-    // Update an option's text value
-    const updateOptionValue = (index: number, value: string) => {
-        const updated = [...options];
-        updated[index] = { ...updated[index], value };
-        setOptions(updated);
-    };
-
-    // Update an option's image file
-    const updateOptionImage = (index: number, file: File | null) => {
-        const updated = [...options];
-        updated[index] = { ...updated[index], image: file };
-        setOptions(updated);
-    };
-
-    // Remove just the image from an option
-    const removeOptionImage = (index: number) => {
-        const updated = [...options];
-        updated[index] = { ...updated[index], image: null };
-        setOptions(updated);
-    };
 
     return (
         <section className="bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-color)] shadow-sm overflow-hidden transition-all duration-300">
@@ -136,7 +99,7 @@ export default function PollTabs({
             </div>
 
             {/* Panel Content */}
-            <div className={`transition-all duration-300 ${isPanelOpen ? 'max-h-[1200px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
+            <div className={`transition-all duration-300 ${isPanelOpen ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'} overflow-hidden`}>
                 <div className="p-8">
 
                     {/* FORM TAB */}
@@ -149,7 +112,6 @@ export default function PollTabs({
                                 </div>
                             )}
 
-                            {/* Poll details row */}
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                 <div className="md:col-span-4">
                                     <Text
@@ -189,12 +151,12 @@ export default function PollTabs({
                                 <div>
                                     <Select
                                         name="pollStatus"
-                                        label={editingPollId ? 'Status' : 'Initial Status'}
+                                        label={editingPollId ? "Status" : "Initial Status"}
                                         value={pollStatus}
                                         onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setPollStatus(e.target.value)}
                                         options={[
                                             { value: 'open', label: 'Open' },
-                                            { value: 'closed', label: 'Closed' },
+                                            { value: 'closed', label: 'Closed' }
                                         ]}
                                         selectClassName="w-full pl-5 pr-12 py-4 rounded-2xl bg-[var(--bg-main)] border-[var(--border-color)] focus:ring-brand-500/20"
                                     />
@@ -225,87 +187,6 @@ export default function PollTabs({
                                     </button>
                                 </div>
                             </div>
-
-                            {/* Options Section */}
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-center justify-between">
-                                    <label className="text-xs font-black uppercase tracking-widest text-[var(--text-main)]">
-                                        Poll Options <span className="text-rose-500">*</span>
-                                        <span className="ml-2 opacity-40 font-medium normal-case tracking-normal">min. 2</span>
-                                    </label>
-                                    <button
-                                        type="button"
-                                        onClick={addOption}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black uppercase tracking-widest text-brand-600 bg-brand-500/10 hover:bg-brand-500/20 rounded-xl transition-all border border-brand-500/20"
-                                    >
-                                        <Plus size={12} /> Add Option
-                                    </button>
-                                </div>
-
-                                <div className="flex flex-col gap-3">
-                                    {options.map((option, index) => (
-                                        <div
-                                            key={index}
-                                            className="flex items-center gap-3 p-3 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-2xl"
-                                        >
-                                            {/* Image preview / upload button */}
-                                            <div className="flex-shrink-0">
-                                                {option.image ? (
-                                                    <div className="relative w-12 h-12">
-                                                        <img
-                                                            src={URL.createObjectURL(option.image)}
-                                                            alt={`Option ${index + 1}`}
-                                                            className="w-12 h-12 rounded-xl object-cover border border-[var(--border-color)]"
-                                                        />
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => removeOptionImage(index)}
-                                                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-rose-500 text-white rounded-full flex items-center justify-center hover:bg-rose-600 transition-all"
-                                                        >
-                                                            <X size={10} />
-                                                        </button>
-                                                    </div>
-                                                ) : (
-                                                    <label className="w-12 h-12 rounded-xl border-2 border-dashed border-[var(--border-color)] flex items-center justify-center cursor-pointer hover:border-brand-500/50 hover:bg-brand-500/5 transition-all group">
-                                                        <ImagePlus size={16} className="text-[var(--text-main)] opacity-40 group-hover:opacity-100 group-hover:text-brand-600 transition-all" />
-                                                        <input
-                                                            type="file"
-                                                            accept="image/jpg,image/jpeg,image/png,image/webp,image/gif"
-                                                            className="hidden"
-                                                            onChange={(e) => updateOptionImage(index, e.target.files?.[0] ?? null)}
-                                                        />
-                                                    </label>
-                                                )}
-                                            </div>
-
-                                            {/* Option label number */}
-                                            <span className="text-xs font-black text-[var(--text-main)] opacity-30 w-5 text-center flex-shrink-0">
-                                                {index + 1}
-                                            </span>
-
-                                            {/* Option text input */}
-                                            <input
-                                                type="text"
-                                                value={option.value}
-                                                onChange={(e) => updateOptionValue(index, e.target.value)}
-                                                placeholder={`Option ${index + 1} label`}
-                                                className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] text-sm font-medium text-[var(--text-main)] focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500/50 transition-all"
-                                            />
-
-                                            {/* Remove option button */}
-                                            <button
-                                                type="button"
-                                                onClick={() => removeOption(index)}
-                                                disabled={options.length <= 2}
-                                                className="flex-shrink-0 p-2 text-rose-500 hover:bg-rose-500/10 rounded-xl transition-all disabled:opacity-20 disabled:cursor-not-allowed"
-                                                title="Remove option"
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
                         </div>
                     )}
 
@@ -329,7 +210,7 @@ export default function PollTabs({
                                     options={[
                                         { value: 'all', label: 'All Statuses' },
                                         { value: 'open', label: 'Open' },
-                                        { value: 'closed', label: 'Closed' },
+                                        { value: 'closed', label: 'Closed' }
                                     ]}
                                     selectClassName="w-full pl-5 pr-12 py-4 rounded-2xl bg-[var(--bg-main)] border-[var(--border-color)] focus:ring-brand-500/20"
                                 />
@@ -342,7 +223,7 @@ export default function PollTabs({
                                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setSortFilter(e.target.value)}
                                     options={[
                                         { value: 'newest', label: 'Newest First' },
-                                        { value: 'oldest', label: 'Oldest First' },
+                                        { value: 'oldest', label: 'Oldest First' }
                                     ]}
                                     selectClassName="w-full pl-5 pr-12 py-4 rounded-2xl bg-[var(--bg-main)] border-[var(--border-color)] focus:ring-brand-500/20"
                                 />
@@ -357,9 +238,7 @@ export default function PollTabs({
                                 <h3 className="text-lg font-bold text-[var(--text-heading)]">
                                     {selectedIds.length > 0 ? `${selectedIds.length} Polls Selected` : 'No Selection'}
                                 </h3>
-                                <p className="text-sm text-[var(--text-main)] opacity-70">
-                                    Perform bulk modifications on selected records.
-                                </p>
+                                <p className="text-sm text-[var(--text-main)] opacity-70">Perform bulk modifications on selected records.</p>
                             </div>
                             <div className="flex gap-2">
                                 <button
