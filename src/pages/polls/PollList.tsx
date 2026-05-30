@@ -23,12 +23,21 @@ export default function PollList() {
     const itemsPerPage = 10;
 
     // --- Form States ---
-    const [editingPollId, setEditingPollId] = useState<string | null>(null);
-    const [pollTitle, setPollTitle] = useState('');
-    const [startDate, setStartDate] = useState('');
-    const [endDate, setEndDate] = useState('');
-    const [pollStatus, setPollStatus] = useState('open');
+    const [editingPollId, setEditingPollId] = useState<string | null>(
+        sessionStorage.getItem('editingPollId'));
+    const [pollTitle, setPollTitle] = useState(
+        sessionStorage.getItem('editingPollTitle') || '');
+    const [startDate, setStartDate] = useState(
+        sessionStorage.getItem('editingStartDate') || '');
+    const [endDate, setEndDate] = useState(
+        sessionStorage.getItem('editingEndDate') || '');
+    // FIX 2: Default status is now 'closed'
+    const [pollStatus, setPollStatus] = useState(
+        sessionStorage.getItem('editingPollStatus') || 'closed');
     const [errorMessage, setErrorMessage] = useState('');
+
+    // FIX 1: Track the last created poll so Manage Options appears right after init
+    const [justCreatedPollId, setJustCreatedPollId] = useState<string | null>(null);
 
     // --- Filter States ---
     const [searchText, setSearchText] = useState('');
@@ -52,36 +61,39 @@ export default function PollList() {
 
     const handleClearForm = () => {
         setEditingPollId(null);
+        setJustCreatedPollId(null);
         setPollTitle('');
         setStartDate('');
         setEndDate('');
-        setPollStatus('open');
+        setPollStatus('closed'); // reset to closed
         setErrorMessage('');
+        sessionStorage.removeItem('editingPollId');
+        sessionStorage.removeItem('editingPollTitle');
+        sessionStorage.removeItem('editingStartDate');
+        sessionStorage.removeItem('editingEndDate');
+        sessionStorage.removeItem('editingPollStatus');
     };
 
-    // --- Updated handleEditClick ---
     const handleEditClick = (poll: Poll) => {
-        // 1. Silently update the state in the background
+        setJustCreatedPollId(null); // clear any post-create state
         setEditingPollId(poll.id);
         setPollTitle(poll.title);
         setStartDate(formatForDateTimeInput(poll.start_time));
         setEndDate(formatForDateTimeInput(poll.end_time));
         setPollStatus(poll.status);
-
-        // 2. Ensure the form panel is ready
         setActiveTab('form');
         setIsPanelOpen(true);
-
-        // 3. Clean, simple call to the helper
+        sessionStorage.setItem('editingPollId', poll.id);
+        sessionStorage.setItem('editingPollTitle', poll.title);
+        sessionStorage.setItem('editingStartDate', formatForDateTimeInput(poll.start_time));
+        sessionStorage.setItem('editingEndDate', formatForDateTimeInput(poll.end_time));
+        sessionStorage.setItem('editingPollStatus', poll.status);
         showClickableToast(
             'Edit Mode Active',
             poll.title,
             () => {
                 titleInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Small delay to allow scroll to finish before focusing
-                setTimeout(() => {
-                    titleInputRef.current?.focus();
-                }, 500);
+                setTimeout(() => { titleInputRef.current?.focus(); }, 500);
             }
         );
     };
@@ -107,7 +119,21 @@ export default function PollList() {
             start_time: formatForApi(startDate),
             end_time: formatForApi(endDate),
             status: pollStatus,
-        }, { onSuccess: handleClearForm, onError: (err) => handleMutationError(err, 'Failed to create poll.') });
+        }, {
+            onSuccess: (createdPoll) => {
+                // Keep form filled and switch directly to edit mode
+                // so user can see what was created and make changes
+                setEditingPollId(createdPoll.id);
+                setJustCreatedPollId(createdPoll.id);
+                setErrorMessage('');
+                sessionStorage.setItem('editingPollId', createdPoll.id);
+                sessionStorage.setItem('editingPollTitle', pollTitle);
+                sessionStorage.setItem('editingStartDate', startDate);
+                sessionStorage.setItem('editingEndDate', endDate);
+                sessionStorage.setItem('editingPollStatus', pollStatus);
+            },
+            onError: (err) => handleMutationError(err, 'Failed to create poll.')
+        });
     };
 
     const handleUpdatePoll = () => {
@@ -121,7 +147,10 @@ export default function PollList() {
                 end_time: formatForApi(endDate),
                 status: pollStatus,
             }
-        }, { onSuccess: handleClearForm, onError: (err) => handleMutationError(err, 'Failed to update poll.') });
+        }, {
+            onSuccess: handleClearForm,
+            onError: (err) => handleMutationError(err, 'Failed to update poll.')
+        });
     };
 
     const handleDelete = async (id: string) => {
@@ -130,6 +159,7 @@ export default function PollList() {
         deleteMutation.mutate(id, {
             onSuccess: () => {
                 if (editingPollId === id) handleClearForm();
+                if (justCreatedPollId === id) setJustCreatedPollId(null);
                 if (paginatedPolls.length === 1 && currentPage > 1) setCurrentPage(prev => prev - 1);
             }
         });
@@ -140,17 +170,31 @@ export default function PollList() {
     };
 
     const handleBulkDelete = async () => {
-        const isConfirmed = await showConfirmation('Delete Multiple', `Delete ${selectedIds.length} polls?`, false, 'warning', 'Yes, delete them');
-        if (!isConfirmed) return;
-        bulkDeleteMutation.mutate(selectedIds, {
-            onSuccess: () => {
-                if (selectedIds.includes(editingPollId || '')) handleClearForm();
-                setSelectedIds([]);
-                setCurrentPage(1);
-            }
-        });
-    };
+        // First confirmation — yellow warning
+        const firstConfirm = await showConfirmation(
+            '⚠️ Warning',
+            `You are about to delete ${selectedIds.length} poll${selectedIds.length > 1 ? 's' : ''}. Are you sure you want to proceed?`,
+            false, 'warning', 'Yes, proceed'
+        );
+        if (!firstConfirm) return;
 
+        // Second confirmation — red danger
+        const secondConfirm = await showConfirmation(
+            '🗑️ Final Warning',
+            `This will permanently delete ${selectedIds.length} poll${selectedIds.length > 1 ? 's' : ''} and remove ALL votes and options associated with them. This cannot be undone.`,
+            false, 'error', `Yes, delete ${selectedIds.length} poll${selectedIds.length > 1 ? 's' : ''}`
+        );
+        if (!secondConfirm) return;
+
+    bulkDeleteMutation.mutate(selectedIds, {
+        onSuccess: () => {
+            if (selectedIds.includes(editingPollId || '')) handleClearForm();
+            if (justCreatedPollId && selectedIds.includes(justCreatedPollId)) setJustCreatedPollId(null);
+            setSelectedIds([]);
+            setCurrentPage(1);
+        }
+    });
+};
     // --- Filtering Logic ---
     const filteredPolls = useMemo(() => {
         return polls
@@ -192,6 +236,7 @@ export default function PollList() {
                 handleUpdatePoll={handleUpdatePoll}
                 titleInputRef={titleInputRef}
                 isSubmitting={createMutation.isPending || updateMutation.isPending}
+                justCreatedPollId={justCreatedPollId}
                 searchText={searchText}
                 setSearchText={handleSearchChange}
                 statusFilter={statusFilter}
@@ -201,6 +246,7 @@ export default function PollList() {
                 selectedIds={selectedIds}
                 handleBulkStatusChange={handleBulkStatusChange}
                 handleBulkDelete={handleBulkDelete}
+                onManageOptions={() => setJustCreatedPollId(null)}
             />
 
             <div>
